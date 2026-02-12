@@ -19,29 +19,37 @@ export function VideoCacheProvider({ children }: { children: React.ReactNode }) 
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const allVideos = await fetchVideos();
-    setVideos(allVideos);
 
-    const cacheEntries = await Promise.all(
-      allVideos.map(async (video) => {
-        const response = await fetch(toAbsoluteStreamUrl(video.stream_url));
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        return [video.id, objectUrl] as const;
-      })
-    );
+    try {
+      const allVideos = await fetchVideos();
+      setVideos(allVideos);
 
-    setStreamCache(Object.fromEntries(cacheEntries));
-    setLoading(false);
+      const prefetched = await Promise.allSettled(
+        allVideos.map(async (video) => {
+          const response = await fetch(toAbsoluteStreamUrl(video.stream_url));
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          return [video.id, objectUrl] as const;
+        })
+      );
+
+      setStreamCache((previous) => {
+        Object.values(previous).forEach((url) => URL.revokeObjectURL(url));
+
+        const entries = prefetched
+          .filter((item): item is PromiseFulfilledResult<readonly [number, string]> => item.status === 'fulfilled')
+          .map((item) => item.value);
+
+        return Object.fromEntries(entries);
+      });
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     void loadAll();
-    return () => {
-      Object.values(streamCache).forEach((url) => URL.revokeObjectURL(url));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadAll]);
 
   const value = useMemo(
     () => ({ videos, streamCache, loading, refreshVideos: loadAll }),

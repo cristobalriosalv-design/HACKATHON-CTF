@@ -6,13 +6,26 @@ type VideoCardProps = {
   video: Video;
 };
 
+function formatViews(views: number): string {
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M views`;
+  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}K views`;
+  return `${views} views`;
+}
+
 export function VideoCard({ video }: VideoCardProps) {
   return (
     <Link to={`/watch/${video.id}`} className="video-card">
-      <div className="thumbnail-placeholder">Video #{video.id}</div>
-      <h3>{video.title}</h3>
-      <p>{video.description || 'No description'}</p>
-      <small>{video.views} views</small>
+      <div className="video-thumb">
+        <span className="video-duration">12:34</span>
+      </div>
+      <div className="video-meta">
+        <div className="channel-dot" />
+        <div>
+          <h3 className="video-title">{video.title}</h3>
+          <p className="video-description">{video.description || 'No description'}</p>
+          <small className="video-stats">{formatViews(video.views)}</small>
+        </div>
+      </div>
     </Link>
   );
 }

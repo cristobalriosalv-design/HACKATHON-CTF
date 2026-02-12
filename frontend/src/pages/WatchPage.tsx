@@ -5,6 +5,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addComment, fetchComments, fetchRecommended, fetchVideo, toAbsoluteStreamUrl } from '../api/client';
 import { useVideoCache } from '../context/VideoCacheContext';
 
+function formatViews(views: number): string {
+  return `${views.toLocaleString()} views`;
+}
+
 export function WatchPage() {
   const { id } = useParams();
   const videoId = Number(id);
@@ -45,8 +49,8 @@ export function WatchPage() {
     return streamCache[videoId] ?? toAbsoluteStreamUrl(videoQuery.data.stream_url);
   }, [streamCache, videoId, videoQuery.data]);
 
-  if (videoQuery.isLoading) return <p>Loading video...</p>;
-  if (!videoQuery.data) return <p>Video not found.</p>;
+  if (videoQuery.isLoading) return <p className="status-text">Loading video...</p>;
+  if (!videoQuery.data) return <p className="status-text">Video not found.</p>;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -58,8 +62,9 @@ export function WatchPage() {
     <main className="watch-layout">
       <section>
         <video src={streamSrc} controls className="player" />
-        <h1>{videoQuery.data.title}</h1>
-        <p>{videoQuery.data.description || 'No description'}</p>
+        <h1 className="watch-title">{videoQuery.data.title}</h1>
+        <p className="watch-stats">{formatViews(videoQuery.data.views)}</p>
+        <p className="watch-description">{videoQuery.data.description || 'No description'}</p>
 
         <div className="comments">
           <h2>Comments</h2>
@@ -91,12 +96,15 @@ export function WatchPage() {
       </section>
 
       <aside>
-        <h2>Recommended</h2>
+        <h2 className="rec-title">Recommended</h2>
         <div className="recommended-list">
           {recommendedQuery.data?.map((video) => (
             <Link key={video.id} to={`/watch/${video.id}`} className="recommended-item">
-              <strong>{video.title}</strong>
-              <span>{video.views} views</span>
+              <div className="recommended-thumb" />
+              <div>
+                <strong>{video.title}</strong>
+                <span>{formatViews(video.views)}</span>
+              </div>
             </Link>
           ))}
         </div>
