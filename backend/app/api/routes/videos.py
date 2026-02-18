@@ -1,7 +1,7 @@
 from pathlib import Path
 import mimetypes
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,14 @@ UPLOAD_DIR = Path("uploads")
 
 
 def to_video_response(video) -> VideoResponse:
+    uploader = None
+    if video.uploader:
+        uploader = {
+            "id": video.uploader.id,
+            "display_name": video.uploader.display_name,
+            "avatar_url": f"/users/{video.uploader.id}/avatar" if video.uploader.avatar_path else None,
+        }
+
     return VideoResponse(
         id=video.id,
         title=video.title,
@@ -25,6 +33,7 @@ def to_video_response(video) -> VideoResponse:
         views=video.views,
         stream_url=f"/videos/{video.id}/stream",
         thumbnail_url=f"/videos/{video.id}/thumbnail" if video.thumbnail_path else None,
+        uploader=uploader,
     )
 
 
@@ -40,6 +49,7 @@ def upload_video(
     description: str = Form(""),
     file: UploadFile = File(...),
     thumbnail: UploadFile | None = File(None),
+    uploader_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ):
     video = VideoService(db).upload_video(
@@ -48,6 +58,7 @@ def upload_video(
         file=file,
         upload_dir=UPLOAD_DIR,
         thumbnail=thumbnail,
+        uploader_id=uploader_id,
     )
     return to_video_response(video)
 
@@ -56,6 +67,12 @@ def upload_video(
 def get_video(video_id: int, db: Session = Depends(get_db)):
     video = VideoService(db).increment_views(video_id)
     return to_video_response(video)
+
+
+@router.delete("/{video_id}")
+def delete_video(video_id: int, requester_user_id: int = Query(...), db: Session = Depends(get_db)):
+    VideoService(db).delete_video(video_id=video_id, requester_user_id=requester_user_id)
+    return {"status": "ok"}
 
 
 @router.get("/{video_id}/stream")

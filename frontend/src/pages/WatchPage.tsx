@@ -1,8 +1,9 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { addComment, fetchComments, fetchRecommended, fetchVideo, toAbsoluteApiUrl, toAbsoluteStreamUrl } from '../api/client';
+import { addComment, deleteVideo, fetchComments, fetchRecommended, fetchVideo, toAbsoluteApiUrl, toAbsoluteStreamUrl } from '../api/client';
+import { useUserContext } from '../context/UserContext';
 import { useVideoCache } from '../context/VideoCacheContext';
 
 function formatViews(views: number): string {
@@ -12,10 +13,16 @@ function formatViews(views: number): string {
 export function WatchPage() {
   const { id } = useParams();
   const videoId = Number(id);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { streamCache } = useVideoCache();
-  const [author, setAuthor] = useState('');
+  const { streamCache, refreshVideos } = useVideoCache();
+  const { currentUser, isSubscribedTo, subscribe, unsubscribe } = useUserContext();
+  const [author, setAuthor] = useState(currentUser?.display_name ?? '');
   const [content, setContent] = useState('');
+
+  useEffect(() => {
+    setAuthor(currentUser?.display_name ?? '');
+  }, [currentUser?.id]);
 
   const videoQuery = useQuery({
     queryKey: ['video', videoId],
@@ -38,9 +45,21 @@ export function WatchPage() {
   const commentMutation = useMutation({
     mutationFn: () => addComment(videoId, author, content),
     onSuccess: async () => {
-      setAuthor('');
+      setAuthor(currentUser?.display_name ?? '');
       setContent('');
       await queryClient.invalidateQueries({ queryKey: ['comments', videoId] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentUser) throw new Error('Current user required');
+      await deleteVideo(videoId, currentUser.id);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['video', videoId] });
+      await refreshVideos();
+      navigate('/');
     },
   });
 
@@ -48,6 +67,12 @@ export function WatchPage() {
     if (!videoQuery.data) return '';
     return streamCache[videoId] ?? toAbsoluteStreamUrl(videoQuery.data.stream_url);
   }, [streamCache, videoId, videoQuery.data]);
+
+  const uploaderId = videoQuery.data?.uploader?.id ?? null;
+  const showSubscribeButton =
+    !!currentUser && uploaderId !== null && uploaderId !== currentUser.id;
+  const isOwner = !!currentUser && uploaderId !== null && uploaderId === currentUser.id;
+  const subscribed = isSubscribedTo(uploaderId);
 
   if (videoQuery.isLoading) return <p className="status-text">Loading video...</p>;
   if (!videoQuery.data) return <p className="status-text">Video not found.</p>;
@@ -63,6 +88,27 @@ export function WatchPage() {
       <section>
         <video src={streamSrc} controls className="player" />
         <h1 className="watch-title">{videoQuery.data.title}</h1>
+        {videoQuery.data.uploader ? (
+          <div className="watch-uploader-row">
+            <strong>{videoQuery.data.uploader.display_name}</strong>
+            {showSubscribeButton ? (
+              subscribed ? (
+                <button type="button" className="secondary-btn" onClick={() => void unsubscribe(uploaderId!)}>
+                  Unsubscribe
+                </button>
+              ) : (
+                <button type="button" onClick={() => void subscribe(uploaderId!)}>
+                  Subscribe
+                </button>
+              )
+            ) : null}
+            {isOwner ? (
+              <button type="button" className="danger-btn" onClick={() => void deleteMutation.mutateAsync()}>
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete video'}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <p className="watch-stats">{formatViews(videoQuery.data.views)}</p>
         <p className="watch-description">{videoQuery.data.description || 'No description'}</p>
 

@@ -14,8 +14,31 @@ class VideoRepository:
     def get_by_id(self, video_id: int) -> Video | None:
         return self.db.query(Video).filter(Video.id == video_id).first()
 
-    def create(self, title: str, description: str, file_path: str, thumbnail_path: str | None = None) -> Video:
-        video = Video(title=title, description=description, file_path=file_path, thumbnail_path=thumbnail_path)
+    def get_by_uploader_ids(self, uploader_ids: list[int]) -> list[Video]:
+        if not uploader_ids:
+            return []
+        return (
+            self.db.query(Video)
+            .filter(Video.uploader_id.in_(uploader_ids))
+            .order_by(desc(Video.created_at))
+            .all()
+        )
+
+    def create(
+        self,
+        title: str,
+        description: str,
+        file_path: str,
+        thumbnail_path: str | None = None,
+        uploader_id: int | None = None,
+    ) -> Video:
+        video = Video(
+            title=title,
+            description=description,
+            file_path=file_path,
+            thumbnail_path=thumbnail_path,
+            uploader_id=uploader_id,
+        )
         self.db.add(video)
         self.db.commit()
         self.db.refresh(video)
@@ -26,3 +49,7 @@ class VideoRepository:
         self.db.commit()
         self.db.refresh(video)
         return video
+
+    def delete(self, video: Video) -> None:
+        self.db.delete(video)
+        self.db.commit()

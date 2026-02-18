@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -14,7 +14,9 @@ class Video(Base):
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     thumbnail_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    uploader_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     comments = relationship("Comment", back_populates="video", cascade="all, delete-orphan")
+    uploader = relationship("User", back_populates="uploaded_videos")

@@ -354,6 +354,7 @@ a {
   height: 36px;
   border-radius: 999px;
   background: #d8d8d8;
+  object-fit: cover;
 }
 
 .video-title {
@@ -376,6 +377,12 @@ a {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.video-channel {
+  display: block;
+  color: var(--yt-muted);
+  margin-top: 0.2rem;
 }
 
 .video-stats {
@@ -445,7 +452,8 @@ button {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid #d2d2d2;
   border-radius: 10px;
@@ -454,7 +462,8 @@ textarea {
 }
 
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
   border-color: #1c62b9;
 }
@@ -584,6 +593,13 @@ button:disabled {
   color: var(--yt-muted);
 }
 
+.watch-uploader-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
 .watch-description {
   margin-top: 0.72rem;
   background: #f2f2f2;
@@ -679,6 +695,78 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.page-title {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+}
+
+.user-selector-wrap {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 170px;
+}
+
+.user-selector-label {
+  color: var(--yt-muted);
+  font-size: 0.74rem;
+}
+
+.user-selector {
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #d2d2d2;
+}
+
+.avatar-image {
+  object-fit: cover;
+}
+
+.users-main {
+  padding: 1.4rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.user-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.user-row {
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  padding: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.user-row-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.user-row-left p {
+  margin: 0.2rem 0 0;
+  color: var(--yt-muted);
+}
+
+.user-row-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.secondary-btn {
+  background: #efefef;
+  color: #111;
+}
+
+.danger-btn {
+  background: #b3261e;
+}
+
 @media (max-width: 1280px) {
   .watch-layout {
     grid-template-columns: minmax(0, 1fr) 340px;
@@ -715,6 +803,11 @@ button:disabled {
   .watch-layout {
     grid-template-columns: 1fr;
   }
+
+  .header-right {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 760px) {
@@ -738,5 +831,10 @@ button:disabled {
   .upload-topbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .user-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

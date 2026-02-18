@@ -6,12 +6,14 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.video import Video
+from app.repositories.user_repository import UserRepository
 from app.repositories.video_repository import VideoRepository
 
 
 class VideoService:
     def __init__(self, db: Session):
         self.repo = VideoRepository(db)
+        self.user_repo = UserRepository(db)
 
     def list_videos(self) -> list[Video]:
         return self.repo.get_all()
@@ -29,7 +31,11 @@ class VideoService:
         file: UploadFile,
         upload_dir: Path,
         thumbnail: UploadFile | None = None,
+        uploader_id: int | None = None,
     ) -> Video:
+        if uploader_id is not None and self.user_repo.get_by_id(uploader_id) is None:
+            raise HTTPException(status_code=404, detail="Uploader not found")
+
         upload_dir.mkdir(parents=True, exist_ok=True)
 
         video_path = self._save_upload_file(file=file, directory=upload_dir, default_name="video.mp4")
@@ -42,7 +48,13 @@ class VideoService:
             thumbnail_dir.mkdir(parents=True, exist_ok=True)
             thumbnail_path = self._save_upload_file(file=thumbnail, directory=thumbnail_dir, default_name="thumb.jpg")
 
-        return self.repo.create(title=title, description=description, file_path=video_path, thumbnail_path=thumbnail_path)
+        return self.repo.create(
+            title=title,
+            description=description,
+            file_path=video_path,
+            thumbnail_path=thumbnail_path,
+            uploader_id=uploader_id,
+        )
 
     def get_recommended(self, video_id: int, limit: int = 8) -> list[Video]:
         current = self.get_video(video_id)
@@ -63,6 +75,24 @@ class VideoService:
     def increment_views(self, video_id: int) -> Video:
         video = self.get_video(video_id)
         return self.repo.increment_views(video)
+
+    def delete_video(self, video_id: int, requester_user_id: int) -> None:
+        if self.user_repo.get_by_id(requester_user_id) is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        video = self.get_video(video_id)
+        if video.uploader_id is None or video.uploader_id != requester_user_id:
+            raise HTTPException(status_code=403, detail="Only the video owner can delete this video")
+
+        file_paths = [video.file_path]
+        if video.thumbnail_path:
+            file_paths.append(video.thumbnail_path)
+
+        self.repo.delete(video)
+
+        for file_path in file_paths:
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     def ensure_video_file_exists(self, video: Video) -> str:
         if not os.path.exists(video.file_path):
