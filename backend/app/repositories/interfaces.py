@@ -1,0 +1,66 @@
+from typing import Protocol
+
+from app.models.comment import Comment
+from app.models.subscription import Subscription
+from app.models.user import User
+from app.models.user_identity import UserIdentity
+from app.models.video import Video
+
+
+class VideoRepositoryPort(Protocol):
+    def get_all(self) -> list[Video]: ...
+
+    def get_by_id(self, video_id: int) -> Video | None: ...
+
+    def get_by_uploader_ids(self, uploader_ids: list[int]) -> list[Video]: ...
+
+    def create(
+        self,
+        title: str,
+        description: str,
+        file_path: str,
+        thumbnail_path: str | None = None,
+        uploader_id: int | None = None,
+    ) -> Video: ...
+
+    def increment_views(self, video: Video) -> Video: ...
+
+    def delete(self, video: Video) -> None: ...
+
+
+class CommentRepositoryPort(Protocol):
+    def get_by_video_id(self, video_id: int) -> list[Comment]: ...
+
+    def create(self, video_id: int, author: str, content: str) -> Comment: ...
+
+
+class UserRepositoryPort(Protocol):
+    def list_users(self) -> list[User]: ...
+
+    def get_by_id(self, user_id: int) -> User | None: ...
+
+    def get_by_provider_subject(self, provider: str, provider_subject: str) -> User | None: ...
+
+    def create_user(self, display_name: str, avatar_path: str | None = None) -> User: ...
+
+    def create_identity(
+        self,
+        user_id: int,
+        provider: str,
+        provider_subject: str,
+        email: str | None = None,
+    ) -> UserIdentity: ...
+
+    def commit(self) -> None: ...
+
+    def refresh_user(self, user: User) -> None: ...
+
+
+class SubscriptionRepositoryPort(Protocol):
+    def get_by_pair(self, follower_id: int, creator_id: int) -> Subscription | None: ...
+
+    def list_creator_ids(self, follower_id: int) -> list[int]: ...
+
+    def create(self, follower_id: int, creator_id: int) -> Subscription: ...
+
+    def delete(self, subscription: Subscription) -> None: ...

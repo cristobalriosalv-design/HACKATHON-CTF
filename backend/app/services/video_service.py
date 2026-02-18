@@ -3,17 +3,15 @@ import uuid
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy.orm import Session
 
 from app.models.video import Video
-from app.repositories.user_repository import UserRepository
-from app.repositories.video_repository import VideoRepository
+from app.repositories.interfaces import UserRepositoryPort, VideoRepositoryPort
 
 
 class VideoService:
-    def __init__(self, db: Session):
-        self.repo = VideoRepository(db)
-        self.user_repo = UserRepository(db)
+    def __init__(self, repo: VideoRepositoryPort, user_repo: UserRepositoryPort):
+        self.repo = repo
+        self.user_repo = user_repo
 
     def list_videos(self) -> list[Video]:
         return self.repo.get_all()

@@ -15,3 +15,11 @@ class UserProvider(Protocol):
 
     def normalize_subject(self, payload: ProviderUserCreateInput) -> str:
         ...
+
+
+class UserProviderRegistryPort(Protocol):
+    def get(self, provider_name: str) -> UserProvider:
+        ...
+
+    def list_provider_names(self) -> list[str]:
+        ...

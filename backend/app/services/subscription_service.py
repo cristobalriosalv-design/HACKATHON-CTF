@@ -1,18 +1,20 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
 
 from app.models.subscription import Subscription
 from app.models.video import Video
-from app.repositories.subscription_repository import SubscriptionRepository
-from app.repositories.user_repository import UserRepository
-from app.repositories.video_repository import VideoRepository
+from app.repositories.interfaces import SubscriptionRepositoryPort, UserRepositoryPort, VideoRepositoryPort
 
 
 class SubscriptionService:
-    def __init__(self, db: Session):
-        self.user_repo = UserRepository(db)
-        self.subscription_repo = SubscriptionRepository(db)
-        self.video_repo = VideoRepository(db)
+    def __init__(
+        self,
+        user_repo: UserRepositoryPort,
+        subscription_repo: SubscriptionRepositoryPort,
+        video_repo: VideoRepositoryPort,
+    ):
+        self.user_repo = user_repo
+        self.subscription_repo = subscription_repo
+        self.video_repo = video_repo
 
     def subscribe(self, follower_id: int, creator_id: int) -> Subscription:
         self._ensure_user_exists(follower_id)

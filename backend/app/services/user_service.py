@@ -3,17 +3,16 @@ import uuid
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy.orm import Session
 
-from app.auth.providers import ProviderUserCreateInput, UserProviderRegistry
+from app.auth.providers import ProviderUserCreateInput, UserProviderRegistryPort
 from app.models.user import User
-from app.repositories.user_repository import UserRepository
+from app.repositories.interfaces import UserRepositoryPort
 
 
 class UserService:
-    def __init__(self, db: Session):
-        self.repo = UserRepository(db)
-        self.provider_registry = UserProviderRegistry()
+    def __init__(self, repo: UserRepositoryPort, provider_registry: UserProviderRegistryPort):
+        self.repo = repo
+        self.provider_registry = provider_registry
 
     def list_users(self) -> list[User]:
         return self.repo.list_users()
