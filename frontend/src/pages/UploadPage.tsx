@@ -208,86 +208,99 @@ export function UploadPage() {
   return (
     <main className="upload-main">
       <section className="upload-panel">
-        <h1>Upload video</h1>
-        <p>Add details and publish your content.</p>
+        <div className="upload-topbar">
+          <div>
+            <h1>Upload videos</h1>
+            <p>Add details to publish your video.</p>
+          </div>
+          <button type="submit" form="upload-form" disabled={loading || isGeneratingFrames} className="upload-publish-btn">
+            {loading ? 'Uploading...' : 'Publish'}
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="upload-form">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" required />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            required
-          />
-
-          <fieldset className="thumbnail-options">
-            <legend>Thumbnail</legend>
-            <label>
-              <input
-                type="radio"
-                name="thumbnail-mode"
-                value="frame"
-                checked={thumbnailMode === 'frame'}
-                onChange={() => setThumbnailMode('frame')}
-              />
-              Pick a frame from the video
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="thumbnail-mode"
-                value="custom"
-                checked={thumbnailMode === 'custom'}
-                onChange={() => setThumbnailMode('custom')}
-              />
-              Upload a custom thumbnail
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="thumbnail-mode"
-                value="none"
-                checked={thumbnailMode === 'none'}
-                onChange={() => setThumbnailMode('none')}
-              />
-              No thumbnail
-            </label>
-          </fieldset>
-
-          {thumbnailMode === 'frame' ? (
-            <div className="thumbnail-picker">
-              {isGeneratingFrames ? <p>Generating frame thumbnails...</p> : null}
-              {!isGeneratingFrames && generatedFrames.length > 0 ? (
-                <div className="thumbnail-grid">
-                  {generatedFrames.map((frame) => (
-                    <button
-                      key={frame.id}
-                      type="button"
-                      onClick={() => setSelectedFrameId(frame.id)}
-                      className={selectedFrameId === frame.id ? 'thumbnail-option thumbnail-option-active' : 'thumbnail-option'}
-                    >
-                      <img src={frame.previewUrl} alt="Generated frame thumbnail option" />
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              {!isGeneratingFrames && generatedFrames.length === 0 ? <p>No frame thumbnails available yet.</p> : null}
-            </div>
-          ) : null}
-
-          {thumbnailMode === 'custom' ? (
+        <form id="upload-form" onSubmit={handleSubmit} className="upload-form">
+          <section className="upload-section">
+            <h2>Video file</h2>
             <input
               type="file"
-              accept="image/*"
-              onChange={(e) => setCustomThumbnail(e.target.files?.[0] ?? null)}
+              accept="video/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               required
             />
-          ) : null}
+          </section>
 
-          <button type="submit" disabled={loading || isGeneratingFrames}>
-            {loading ? 'Uploading...' : 'Upload'}
-          </button>
+          <section className="upload-section">
+            <h2>Details</h2>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" required />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+          </section>
+
+          <section className="upload-section">
+            <h2>Thumbnail</h2>
+            <fieldset className="thumbnail-options">
+              <legend>Choose thumbnail source</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="thumbnail-mode"
+                  value="frame"
+                  checked={thumbnailMode === 'frame'}
+                  onChange={() => setThumbnailMode('frame')}
+                />
+                Pick a frame from the video
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="thumbnail-mode"
+                  value="custom"
+                  checked={thumbnailMode === 'custom'}
+                  onChange={() => setThumbnailMode('custom')}
+                />
+                Upload a custom thumbnail
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="thumbnail-mode"
+                  value="none"
+                  checked={thumbnailMode === 'none'}
+                  onChange={() => setThumbnailMode('none')}
+                />
+                No thumbnail
+              </label>
+            </fieldset>
+
+            {thumbnailMode === 'frame' ? (
+              <div className="thumbnail-picker">
+                {isGeneratingFrames ? <p>Generating frame thumbnails...</p> : null}
+                {!isGeneratingFrames && generatedFrames.length > 0 ? (
+                  <div className="thumbnail-grid">
+                    {generatedFrames.map((frame) => (
+                      <button
+                        key={frame.id}
+                        type="button"
+                        onClick={() => setSelectedFrameId(frame.id)}
+                        className={selectedFrameId === frame.id ? 'thumbnail-option thumbnail-option-active' : 'thumbnail-option'}
+                      >
+                        <img src={frame.previewUrl} alt="Generated frame thumbnail option" />
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {!isGeneratingFrames && generatedFrames.length === 0 ? <p>No frame thumbnails available yet.</p> : null}
+              </div>
+            ) : null}
+
+            {thumbnailMode === 'custom' ? (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setCustomThumbnail(e.target.files?.[0] ?? null)}
+                required
+              />
+            ) : null}
+          </section>
         </form>
 
         {thumbnailError ? <p className="error-text">{thumbnailError}</p> : null}
