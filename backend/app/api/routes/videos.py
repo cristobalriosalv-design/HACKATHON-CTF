@@ -1,4 +1,5 @@
 from pathlib import Path
+import mimetypes
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import FileResponse
@@ -23,6 +24,7 @@ def to_video_response(video) -> VideoResponse:
         created_at=video.created_at,
         views=video.views,
         stream_url=f"/videos/{video.id}/stream",
+        thumbnail_url=f"/videos/{video.id}/thumbnail" if video.thumbnail_path else None,
     )
 
 
@@ -37,9 +39,16 @@ def upload_video(
     title: str = Form(...),
     description: str = Form(""),
     file: UploadFile = File(...),
+    thumbnail: UploadFile | None = File(None),
     db: Session = Depends(get_db),
 ):
-    video = VideoService(db).upload_video(title=title, description=description, file=file, upload_dir=UPLOAD_DIR)
+    video = VideoService(db).upload_video(
+        title=title,
+        description=description,
+        file=file,
+        upload_dir=UPLOAD_DIR,
+        thumbnail=thumbnail,
+    )
     return to_video_response(video)
 
 
@@ -55,6 +64,15 @@ def stream_video(video_id: int, db: Session = Depends(get_db)):
     video = service.get_video(video_id)
     file_path = service.ensure_video_file_exists(video)
     return FileResponse(file_path, media_type="video/mp4", filename=Path(file_path).name)
+
+
+@router.get("/{video_id}/thumbnail")
+def stream_thumbnail(video_id: int, db: Session = Depends(get_db)):
+    service = VideoService(db)
+    video = service.get_video(video_id)
+    file_path = service.ensure_thumbnail_file_exists(video)
+    media_type = mimetypes.guess_type(file_path)[0] or "image/jpeg"
+    return FileResponse(file_path, media_type=media_type, filename=Path(file_path).name)
 
 
 @router.get("/{video_id}/comments", response_model=list[CommentResponse])

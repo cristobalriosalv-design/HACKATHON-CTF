@@ -1,0 +1,32 @@
+# Databases
+*/*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.python-version
+.venv/
+venv/
+*/.venv/
+*/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend
+node_modules/
+*/node_modules/
+
+# Environment files
+.env
+.env.*
+
+# Build outputs
+build/
+dist/
+
+# Local runtime artifacts
+backend/uploads/

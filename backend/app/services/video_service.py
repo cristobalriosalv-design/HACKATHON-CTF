@@ -22,16 +22,27 @@ class VideoService:
             raise HTTPException(status_code=404, detail="Video not found")
         return video
 
-    def upload_video(self, title: str, description: str, file: UploadFile, upload_dir: Path) -> Video:
-        suffix = Path(file.filename or "video.mp4").suffix or ".mp4"
-        filename = f"{uuid.uuid4()}{suffix}"
+    def upload_video(
+        self,
+        title: str,
+        description: str,
+        file: UploadFile,
+        upload_dir: Path,
+        thumbnail: UploadFile | None = None,
+    ) -> Video:
         upload_dir.mkdir(parents=True, exist_ok=True)
-        destination = upload_dir / filename
 
-        with destination.open("wb") as buffer:
-            buffer.write(file.file.read())
+        video_path = self._save_upload_file(file=file, directory=upload_dir, default_name="video.mp4")
 
-        return self.repo.create(title=title, description=description, file_path=str(destination))
+        thumbnail_path: str | None = None
+        if thumbnail:
+            if thumbnail.content_type and not thumbnail.content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="Thumbnail must be an image")
+            thumbnail_dir = upload_dir / "thumbnails"
+            thumbnail_dir.mkdir(parents=True, exist_ok=True)
+            thumbnail_path = self._save_upload_file(file=thumbnail, directory=thumbnail_dir, default_name="thumb.jpg")
+
+        return self.repo.create(title=title, description=description, file_path=video_path, thumbnail_path=thumbnail_path)
 
     def get_recommended(self, video_id: int, limit: int = 8) -> list[Video]:
         current = self.get_video(video_id)
@@ -57,3 +68,18 @@ class VideoService:
         if not os.path.exists(video.file_path):
             raise HTTPException(status_code=404, detail="Video file not found")
         return video.file_path
+
+    def ensure_thumbnail_file_exists(self, video: Video) -> str:
+        if not video.thumbnail_path or not os.path.exists(video.thumbnail_path):
+            raise HTTPException(status_code=404, detail="Thumbnail not found")
+        return video.thumbnail_path
+
+    def _save_upload_file(self, file: UploadFile, directory: Path, default_name: str) -> str:
+        suffix = Path(file.filename or default_name).suffix or Path(default_name).suffix
+        filename = f"{uuid.uuid4()}{suffix}"
+        destination = directory / filename
+
+        with destination.open("wb") as buffer:
+            buffer.write(file.file.read())
+
+        return str(destination)

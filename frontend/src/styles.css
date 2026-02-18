@@ -195,6 +195,13 @@ a {
   background: linear-gradient(135deg, #272727, #4d4d4d);
   border-radius: 12px;
   position: relative;
+  overflow: hidden;
+}
+
+.video-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .video-duration {
@@ -313,6 +320,66 @@ button:disabled {
   margin: 0.8rem 0 0;
 }
 
+.thumbnail-options {
+  margin: 0;
+  border: 1px solid #dcdcdc;
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.thumbnail-options legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.thumbnail-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.thumbnail-options input[type='radio'] {
+  width: auto;
+}
+
+.thumbnail-picker {
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: #fafafa;
+}
+
+.thumbnail-picker p {
+  margin: 0;
+}
+
+.thumbnail-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.thumbnail-option {
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0;
+  overflow: hidden;
+}
+
+.thumbnail-option img {
+  width: 100%;
+  display: block;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.thumbnail-option-active {
+  border-color: #0f0f0f;
+}
+
 .watch-layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(290px, 380px);
@@ -385,6 +452,13 @@ button:disabled {
   aspect-ratio: 16 / 9;
   background: linear-gradient(135deg, #2e2e2e, #666);
   border-radius: 10px;
+  overflow: hidden;
+}
+
+.recommended-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .recommended-item strong {

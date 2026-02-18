@@ -5,6 +5,7 @@ export type Video = {
   created_at: string;
   views: number;
   stream_url: string;
+  thumbnail_url: string | null;
 };
 
 export type Comment = {

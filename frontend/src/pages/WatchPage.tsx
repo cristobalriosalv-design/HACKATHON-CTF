@@ -2,7 +2,7 @@ import { FormEvent, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { addComment, fetchComments, fetchRecommended, fetchVideo, toAbsoluteStreamUrl } from '../api/client';
+import { addComment, fetchComments, fetchRecommended, fetchVideo, toAbsoluteApiUrl, toAbsoluteStreamUrl } from '../api/client';
 import { useVideoCache } from '../context/VideoCacheContext';
 
 function formatViews(views: number): string {
@@ -100,7 +100,9 @@ export function WatchPage() {
         <div className="recommended-list">
           {recommendedQuery.data?.map((video) => (
             <Link key={video.id} to={`/watch/${video.id}`} className="recommended-item">
-              <div className="recommended-thumb" />
+              <div className="recommended-thumb">
+                {video.thumbnail_url ? <img src={toAbsoluteApiUrl(video.thumbnail_url)} alt={`${video.title} thumbnail`} /> : null}
+              </div>
               <div>
                 <strong>{video.title}</strong>
                 <span>{formatViews(video.views)}</span>

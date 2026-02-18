@@ -14,8 +14,8 @@ class VideoRepository:
     def get_by_id(self, video_id: int) -> Video | None:
         return self.db.query(Video).filter(Video.id == video_id).first()
 
-    def create(self, title: str, description: str, file_path: str) -> Video:
-        video = Video(title=title, description=description, file_path=file_path)
+    def create(self, title: str, description: str, file_path: str, thumbnail_path: str | None = None) -> Video:
+        video = Video(title=title, description=description, file_path=file_path, thumbnail_path=thumbnail_path)
         self.db.add(video)
         self.db.commit()
         self.db.refresh(video)

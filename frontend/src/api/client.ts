@@ -2,7 +2,8 @@ import type { Comment, Video } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
-export const toAbsoluteStreamUrl = (streamUrl: string) => `${API_BASE_URL}${streamUrl}`;
+export const toAbsoluteApiUrl = (relativeUrl: string) => `${API_BASE_URL}${relativeUrl}`;
+export const toAbsoluteStreamUrl = (streamUrl: string) => toAbsoluteApiUrl(streamUrl);
 
 export async function fetchVideos(): Promise<Video[]> {
   const response = await fetch(`${API_BASE_URL}/videos`);

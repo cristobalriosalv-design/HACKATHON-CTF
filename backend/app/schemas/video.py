@@ -13,5 +13,6 @@ class VideoResponse(VideoBase):
     created_at: datetime
     views: int
     stream_url: str
+    thumbnail_url: str | None = None
 
     model_config = {"from_attributes": True}

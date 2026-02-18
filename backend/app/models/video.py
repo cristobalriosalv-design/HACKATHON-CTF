@@ -13,6 +13,7 @@ class Video(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    thumbnail_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
