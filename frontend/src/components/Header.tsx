@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom';
 
+import { toAbsoluteApiUrl } from '../api/client';
+import { useUserContext } from '../context/UserContext';
+
 export function Header() {
+  const { users, currentUserId, setCurrentUserId, currentUser } = useUserContext();
+  const avatarSrc = currentUser?.avatar_url ? toAbsoluteApiUrl(currentUser.avatar_url) : null;
+
   return (
     <header className="header">
       <div className="header-left">
@@ -38,21 +44,42 @@ export function Header() {
       </div>
 
       <div className="header-right">
+        <label className="user-selector-wrap" htmlFor="current-user-select">
+          <span className="user-selector-label">Current user</span>
+          <select
+            id="current-user-select"
+            className="user-selector"
+            value={currentUserId ?? ''}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setCurrentUserId(Number.isFinite(next) && next > 0 ? next : null);
+            }}
+          >
+            <option value="">None</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.display_name}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <Link to="/upload" className="upload-link">
           <svg viewBox="0 0 24 24" aria-hidden="true" className="create-icon">
             <path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z" fill="currentColor" />
           </svg>
           <span>Create</span>
         </Link>
-        <button className="icon-btn bell-btn" aria-label="Notifications">
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="bell-icon">
-            <path
-              d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-4v-1l-1-1v-4a6 6 0 1 0-12 0v4l-1 1v1h14z"
-              fill="currentColor"
-            />
-          </svg>
-        </button>
-        <div className="avatar">YC</div>
+
+        <Link to="/users" className="upload-link">
+          <span>Manage Users</span>
+        </Link>
+
+        {avatarSrc ? (
+          <img className="avatar avatar-image" src={avatarSrc} alt={`${currentUser?.display_name ?? 'Current user'} avatar`} />
+        ) : (
+          <div className="avatar">{currentUser?.display_name.slice(0, 2).toUpperCase() ?? 'YC'}</div>
+        )}
       </div>
     </header>
   );

@@ -1,14 +1,12 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
 
-from app.repositories.comment_repository import CommentRepository
-from app.repositories.video_repository import VideoRepository
+from app.repositories.interfaces import CommentRepositoryPort, VideoRepositoryPort
 
 
 class CommentService:
-    def __init__(self, db: Session):
-        self.comment_repo = CommentRepository(db)
-        self.video_repo = VideoRepository(db)
+    def __init__(self, comment_repo: CommentRepositoryPort, video_repo: VideoRepositoryPort):
+        self.comment_repo = comment_repo
+        self.video_repo = video_repo
 
     def list_comments(self, video_id: int):
         video = self.video_repo.get_by_id(video_id)

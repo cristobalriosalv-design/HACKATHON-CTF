@@ -15,6 +15,7 @@ function formatViews(views: number): string {
 
 export function VideoCard({ video }: VideoCardProps) {
   const thumbnailSrc = video.thumbnail_url ? toAbsoluteApiUrl(video.thumbnail_url) : null;
+  const avatarSrc = video.uploader?.avatar_url ? toAbsoluteApiUrl(video.uploader.avatar_url) : null;
 
   return (
     <Link to={`/watch/${video.id}`} className="video-card">
@@ -23,9 +24,10 @@ export function VideoCard({ video }: VideoCardProps) {
         <span className="video-duration">12:34</span>
       </div>
       <div className="video-meta">
-        <div className="channel-dot" />
+        {avatarSrc ? <img className="channel-dot" src={avatarSrc} alt={`${video.uploader?.display_name ?? 'Uploader'} avatar`} /> : <div className="channel-dot" />}
         <div>
           <h3 className="video-title">{video.title}</h3>
+          <small className="video-channel">{video.uploader?.display_name ?? 'Unknown creator'}</small>
           <p className="video-description">{video.description || 'No description'}</p>
           <small className="video-stats">{formatViews(video.views)}</small>
         </div>

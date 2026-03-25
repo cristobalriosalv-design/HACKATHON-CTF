@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { uploadVideo } from '../api/client';
+import { useUserContext } from '../context/UserContext';
 import { useVideoCache } from '../context/VideoCacheContext';
 
 type ThumbnailMode = 'none' | 'frame' | 'custom';
@@ -102,6 +103,7 @@ async function generateFrameOptions(file: File): Promise<FrameOption[]> {
 export function UploadPage() {
   const navigate = useNavigate();
   const { refreshVideos } = useVideoCache();
+  const { currentUser } = useUserContext();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -175,6 +177,9 @@ export function UploadPage() {
     formData.append('title', title.trim());
     formData.append('description', description.trim());
     formData.append('file', file);
+    if (currentUser) {
+      formData.append('uploader_id', String(currentUser.id));
+    }
 
     if (thumbnailMode === 'custom') {
       if (!customThumbnail) {
@@ -212,6 +217,7 @@ export function UploadPage() {
           <div>
             <h1>Upload videos</h1>
             <p>Add details to publish your video.</p>
+            <p>Uploading as: {currentUser?.display_name ?? 'No user selected (video will be unattributed)'}</p>
           </div>
           <button type="submit" form="upload-form" disabled={loading || isGeneratingFrames} className="upload-publish-btn">
             {loading ? 'Uploading...' : 'Publish'}
