@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: ./backend
-    container_name: youtube_clone_backend
+    container_name: eiatube_backend
     ports:
       - "8000:8000"
     volumes:
@@ -11,7 +11,7 @@ services:
   frontend:
     build:
       context: ./frontend
-    container_name: youtube_clone_frontend
+    container_name: eiatube_frontend
     ports:
       - "5173:5173"
     environment:

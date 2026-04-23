@@ -1,6 +1,7 @@
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.core.database import commit_with_retry
 from app.models.subscription import Subscription
 
 
@@ -30,10 +31,10 @@ class SubscriptionRepository:
     def create(self, follower_id: int, creator_id: int) -> Subscription:
         subscription = Subscription(follower_id=follower_id, creator_id=creator_id)
         self.db.add(subscription)
-        self.db.commit()
+        commit_with_retry(self.db)
         self.db.refresh(subscription)
         return subscription
 
     def delete(self, subscription: Subscription) -> None:
         self.db.delete(subscription)
-        self.db.commit()
+        commit_with_retry(self.db)

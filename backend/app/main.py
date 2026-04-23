@@ -7,7 +7,7 @@ from app.api.routes.videos import router as videos_router
 from app.core.database import Base, engine
 from app.models import Comment, Subscription, User, UserIdentity, Video
 
-app = FastAPI(title="YouTube Clone API")
+app = FastAPI(title="EIATube API")
 
 app.add_middleware(
     CORSMiddleware,

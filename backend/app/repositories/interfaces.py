@@ -14,6 +14,8 @@ class VideoRepositoryPort(Protocol):
 
     def get_by_uploader_ids(self, uploader_ids: list[int]) -> list[Video]: ...
 
+    def get_recommended_by_title_terms(self, excluded_video_id: int, terms: list[str], limit: int) -> list[Video]: ...
+
     def create(
         self,
         title: str,

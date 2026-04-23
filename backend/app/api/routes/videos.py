@@ -43,6 +43,12 @@ def upload_video(
 
 @router.get("/{video_id}", response_model=VideoResponse)
 def get_video(video_id: int, video_service: VideoServicePort = Depends(get_video_service)):
+    video = video_service.get_video(video_id)
+    return to_video_response(video)
+
+
+@router.post("/{video_id}/views", response_model=VideoResponse)
+def increment_video_views(video_id: int, video_service: VideoServicePort = Depends(get_video_service)):
     video = video_service.increment_views(video_id)
     return to_video_response(video)
 

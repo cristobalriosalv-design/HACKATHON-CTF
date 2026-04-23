@@ -1,8 +1,17 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { addComment, deleteVideo, fetchComments, fetchRecommended, fetchVideo, toAbsoluteApiUrl, toAbsoluteStreamUrl } from '../api/client';
+import {
+  addComment,
+  deleteVideo,
+  fetchComments,
+  fetchRecommended,
+  fetchVideo,
+  incrementVideoViews,
+  toAbsoluteApiUrl,
+  toAbsoluteStreamUrl,
+} from '../api/client';
 import { useUserContext } from '../context/UserContext';
 import { useVideoCache } from '../context/VideoCacheContext';
 
@@ -15,10 +24,11 @@ export function WatchPage() {
   const videoId = Number(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { streamCache, refreshVideos } = useVideoCache();
+  const { refreshVideos } = useVideoCache();
   const { currentUser, isSubscribedTo, subscribe, unsubscribe } = useUserContext();
   const [author, setAuthor] = useState(currentUser?.display_name ?? '');
   const [content, setContent] = useState('');
+  const viewedVideoIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     setAuthor(currentUser?.display_name ?? '');
@@ -40,6 +50,14 @@ export function WatchPage() {
     queryKey: ['recommended', videoId],
     queryFn: () => fetchRecommended(videoId),
     enabled: Number.isFinite(videoId),
+  });
+
+  const incrementViewsMutation = useMutation({
+    mutationFn: () => incrementVideoViews(videoId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['video', videoId] });
+      await queryClient.invalidateQueries({ queryKey: ['videos'] });
+    },
   });
 
   const commentMutation = useMutation({
@@ -65,8 +83,8 @@ export function WatchPage() {
 
   const streamSrc = useMemo(() => {
     if (!videoQuery.data) return '';
-    return streamCache[videoId] ?? toAbsoluteStreamUrl(videoQuery.data.stream_url);
-  }, [streamCache, videoId, videoQuery.data]);
+    return toAbsoluteStreamUrl(videoQuery.data.stream_url);
+  }, [videoQuery.data]);
 
   const uploaderId = videoQuery.data?.uploader?.id ?? null;
   const showSubscribeButton =
@@ -83,10 +101,19 @@ export function WatchPage() {
     await commentMutation.mutateAsync();
   };
 
+  const handleVideoPlay = () => {
+    if (!Number.isFinite(videoId) || viewedVideoIdsRef.current.has(videoId)) {
+      return;
+    }
+
+    viewedVideoIdsRef.current.add(videoId);
+    void incrementViewsMutation.mutateAsync();
+  };
+
   return (
     <main className="watch-layout">
       <section>
-        <video src={streamSrc} controls className="player" />
+        <video src={streamSrc} controls className="player" onPlay={handleVideoPlay} />
         <h1 className="watch-title">{videoQuery.data.title}</h1>
         {videoQuery.data.uploader ? (
           <div className="watch-uploader-row">

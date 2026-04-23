@@ -23,6 +23,14 @@ export async function fetchVideo(videoId: number): Promise<Video> {
   return response.json();
 }
 
+export async function incrementVideoViews(videoId: number): Promise<Video> {
+  const response = await fetch(`${API_BASE_URL}/videos/${videoId}/views`, {
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Failed to increment video views');
+  return response.json();
+}
+
 export async function deleteVideo(videoId: number, requesterUserId: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/videos/${videoId}?requester_user_id=${requesterUserId}`, {
     method: 'DELETE',

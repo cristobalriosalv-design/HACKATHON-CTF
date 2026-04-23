@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from pathlib import Path
 
@@ -56,19 +57,13 @@ class VideoService:
 
     def get_recommended(self, video_id: int, limit: int = 8) -> list[Video]:
         current = self.get_video(video_id)
-        all_videos = self.repo.get_all()
-
-        current_terms = set(current.title.lower().split())
-
-        def score(video: Video) -> tuple[int, int]:
-            if video.id == current.id:
-                return (-1, -1)
-            terms = set(video.title.lower().split())
-            overlap = len(current_terms.intersection(terms))
-            return (overlap, video.views)
-
-        ranked = sorted(all_videos, key=score, reverse=True)
-        return [video for video in ranked if video.id != current.id][:limit]
+        # Keep recommendation query bounded and computed in SQL.
+        terms = self._extract_title_terms(current.title)
+        return self.repo.get_recommended_by_title_terms(
+            excluded_video_id=current.id,
+            terms=terms,
+            limit=limit,
+        )
 
     def increment_views(self, video_id: int) -> Video:
         video = self.get_video(video_id)
@@ -111,3 +106,13 @@ class VideoService:
             buffer.write(file.file.read())
 
         return str(destination)
+
+    def _extract_title_terms(self, title: str) -> list[str]:
+        terms: list[str] = []
+        for term in re.findall(r"\w+", title.lower()):
+            if len(term) < 3 or term in terms:
+                continue
+            terms.append(term)
+            if len(terms) >= 12:
+                break
+        return terms
