@@ -10,12 +10,14 @@ from app.repositories.interfaces import UserRepositoryPort, VideoRepositoryPort
 
 
 class VideoService:
+    UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB
+
     def __init__(self, repo: VideoRepositoryPort, user_repo: UserRepositoryPort):
         self.repo = repo
         self.user_repo = user_repo
 
-    def list_videos(self) -> list[Video]:
-        return self.repo.get_all()
+    def list_videos(self, limit: int, offset: int) -> list[Video]:
+        return self.repo.get_all(limit=limit, offset=offset)
 
     def get_video(self, video_id: int) -> Video:
         video = self.repo.get_by_id(video_id)
@@ -103,7 +105,11 @@ class VideoService:
         destination = directory / filename
 
         with destination.open("wb") as buffer:
-            buffer.write(file.file.read())
+            while True:
+                chunk = file.file.read(self.UPLOAD_CHUNK_SIZE)
+                if not chunk:
+                    break
+                buffer.write(chunk)
 
         return str(destination)
 

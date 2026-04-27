@@ -19,11 +19,13 @@ class SubscriptionRepository:
             .first()
         )
 
-    def list_creator_ids(self, follower_id: int) -> list[int]:
+    def list_creator_ids(self, follower_id: int, limit: int, offset: int) -> list[int]:
         subscriptions = (
             self.db.query(Subscription)
             .filter(Subscription.follower_id == follower_id)
             .order_by(desc(Subscription.created_at))
+            .offset(offset)
+            .limit(limit)
             .all()
         )
         return [item.creator_id for item in subscriptions]

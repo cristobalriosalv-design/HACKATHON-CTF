@@ -29,6 +29,59 @@ Then open:
 - Backend API: http://localhost:8000
 - Health check: http://localhost:8000/health
 
+## Media offload deployment examples
+
+The backend supports redirecting media requests (`/videos/{id}/stream`, `/videos/{id}/thumbnail`, `/users/{id}/avatar`) to external media hosting when `MEDIA_BASE_URL` is set.
+
+If `MEDIA_BASE_URL` is not set, media is served locally from `uploads/` (dev fallback).
+
+### 1) Nginx reverse proxy to `/uploads`
+
+Use Nginx to serve files from your backend uploads origin:
+
+```nginx
+location /uploads/ {
+    proxy_pass http://media-origin.internal/uploads/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+Set backend environment:
+
+```bash
+MEDIA_BASE_URL=https://media.example.com/uploads
+```
+
+### 2) S3-compatible object storage URL pattern
+
+If uploads are replicated to an S3-compatible bucket and exposed by URL path:
+
+```bash
+MEDIA_BASE_URL=https://storage.example.com/eiatube-uploads
+```
+
+Then API media endpoints redirect to paths like:
+
+```text
+https://storage.example.com/eiatube-uploads/thumbnails/<file>.jpg
+https://storage.example.com/eiatube-uploads/avatars/<file>.png
+https://storage.example.com/eiatube-uploads/<video>.mp4
+```
+
+### 3) Cloudflare CDN in front of media origin
+
+Put Cloudflare in front of your media origin (Nginx/S3/R2), then point backend redirects at the CDN domain:
+
+```bash
+MEDIA_BASE_URL=https://cdn.example.com/uploads
+```
+
+Recommended:
+- Cache static media aggressively at Cloudflare (long TTL for versioned filenames).
+- Enable origin shield/proxy caching to reduce origin load.
+- Purge by URL if you need immediate media invalidation.
+
 Stop services with:
 
 ```bash

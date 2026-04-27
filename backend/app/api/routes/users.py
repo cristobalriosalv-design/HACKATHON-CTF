@@ -1,10 +1,11 @@
 import mimetypes
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse
 
 from app.api.response_mappers import to_user_response, to_video_response
+from app.core.media import build_media_url_for_file
 from app.dependencies import get_subscription_service, get_user_service
 from app.schemas.subscription import SubscriptionListResponse, SubscriptionResponse
 from app.schemas.user import ProviderListResponse, UserResponse
@@ -17,8 +18,12 @@ UPLOAD_DIR = Path("uploads")
 
 
 @router.get("", response_model=list[UserResponse])
-def list_users(user_service: UserServicePort = Depends(get_user_service)):
-    users = user_service.list_users()
+def list_users(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    user_service: UserServicePort = Depends(get_user_service),
+):
+    users = user_service.list_users(limit=limit, offset=offset)
     return [to_user_response(user) for user in users]
 
 
@@ -52,6 +57,9 @@ def list_providers(user_service: UserServicePort = Depends(get_user_service)):
 def stream_avatar(user_id: int, user_service: UserServicePort = Depends(get_user_service)):
     user = user_service.get_user(user_id)
     file_path = user_service.ensure_avatar_file_exists(user)
+    media_url = build_media_url_for_file(file_path)
+    if media_url:
+        return RedirectResponse(url=media_url, status_code=307)
     media_type = mimetypes.guess_type(file_path)[0] or "image/jpeg"
     return FileResponse(file_path, media_type=media_type, filename=Path(file_path).name)
 
@@ -78,16 +86,24 @@ def unsubscribe(
 @router.get("/{user_id}/subscriptions", response_model=SubscriptionListResponse)
 def get_subscriptions(
     user_id: int,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     subscription_service: SubscriptionServicePort = Depends(get_subscription_service),
 ):
-    creator_ids = subscription_service.list_subscription_creator_ids(follower_id=user_id)
+    creator_ids = subscription_service.list_subscription_creator_ids(
+        follower_id=user_id,
+        limit=limit,
+        offset=offset,
+    )
     return SubscriptionListResponse(creator_ids=creator_ids)
 
 
 @router.get("/{user_id}/feed", response_model=list[VideoResponse])
 def get_subscription_feed(
     user_id: int,
+    limit: int = Query(24, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     subscription_service: SubscriptionServicePort = Depends(get_subscription_service),
 ):
-    videos = subscription_service.get_subscription_feed(follower_id=user_id)
+    videos = subscription_service.get_subscription_feed(follower_id=user_id, limit=limit, offset=offset)
     return [to_video_response(video) for video in videos]

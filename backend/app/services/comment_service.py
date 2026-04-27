@@ -8,11 +8,11 @@ class CommentService:
         self.comment_repo = comment_repo
         self.video_repo = video_repo
 
-    def list_comments(self, video_id: int):
+    def list_comments(self, video_id: int, limit: int, offset: int):
         video = self.video_repo.get_by_id(video_id)
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
-        return self.comment_repo.get_by_video_id(video_id)
+        return self.comment_repo.get_by_video_id(video_id=video_id, limit=limit, offset=offset)
 
     def create_comment(self, video_id: int, author: str, content: str):
         video = self.video_repo.get_by_id(video_id)

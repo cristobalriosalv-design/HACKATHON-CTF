@@ -2,9 +2,10 @@ from pathlib import Path
 import mimetypes
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from app.api.response_mappers import to_video_response
+from app.core.media import build_media_url_for_file
 from app.dependencies import get_comment_service, get_video_service
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.video import VideoResponse
@@ -16,8 +17,12 @@ UPLOAD_DIR = Path("uploads")
 
 
 @router.get("", response_model=list[VideoResponse])
-def get_videos(video_service: VideoServicePort = Depends(get_video_service)):
-    videos = video_service.list_videos()
+def get_videos(
+    limit: int = Query(24, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    video_service: VideoServicePort = Depends(get_video_service),
+):
+    videos = video_service.list_videos(limit=limit, offset=offset)
     return [to_video_response(video) for video in videos]
 
 
@@ -67,6 +72,9 @@ def delete_video(
 def stream_video(video_id: int, video_service: VideoServicePort = Depends(get_video_service)):
     video = video_service.get_video(video_id)
     file_path = video_service.ensure_video_file_exists(video)
+    media_url = build_media_url_for_file(file_path)
+    if media_url:
+        return RedirectResponse(url=media_url, status_code=307)
     return FileResponse(file_path, media_type="video/mp4", filename=Path(file_path).name)
 
 
@@ -74,13 +82,21 @@ def stream_video(video_id: int, video_service: VideoServicePort = Depends(get_vi
 def stream_thumbnail(video_id: int, video_service: VideoServicePort = Depends(get_video_service)):
     video = video_service.get_video(video_id)
     file_path = video_service.ensure_thumbnail_file_exists(video)
+    media_url = build_media_url_for_file(file_path)
+    if media_url:
+        return RedirectResponse(url=media_url, status_code=307)
     media_type = mimetypes.guess_type(file_path)[0] or "image/jpeg"
     return FileResponse(file_path, media_type=media_type, filename=Path(file_path).name)
 
 
 @router.get("/{video_id}/comments", response_model=list[CommentResponse])
-def get_comments(video_id: int, comment_service: CommentServicePort = Depends(get_comment_service)):
-    return comment_service.list_comments(video_id)
+def get_comments(
+    video_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    comment_service: CommentServicePort = Depends(get_comment_service),
+):
+    return comment_service.list_comments(video_id=video_id, limit=limit, offset=offset)
 
 
 @router.post("/{video_id}/comments", response_model=CommentResponse)

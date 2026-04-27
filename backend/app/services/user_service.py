@@ -10,12 +10,14 @@ from app.repositories.interfaces import UserRepositoryPort
 
 
 class UserService:
+    UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB
+
     def __init__(self, repo: UserRepositoryPort, provider_registry: UserProviderRegistryPort):
         self.repo = repo
         self.provider_registry = provider_registry
 
-    def list_users(self) -> list[User]:
-        return self.repo.list_users()
+    def list_users(self, limit: int, offset: int) -> list[User]:
+        return self.repo.list_users(limit=limit, offset=offset)
 
     def get_user(self, user_id: int) -> User:
         user = self.repo.get_by_id(user_id)
@@ -82,6 +84,10 @@ class UserService:
         destination = avatar_dir / f"{uuid.uuid4()}{suffix}"
 
         with destination.open("wb") as buffer:
-            buffer.write(avatar.file.read())
+            while True:
+                chunk = avatar.file.read(self.UPLOAD_CHUNK_SIZE)
+                if not chunk:
+                    break
+                buffer.write(chunk)
 
         return str(destination)

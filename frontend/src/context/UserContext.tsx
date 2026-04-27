@@ -50,7 +50,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUsers = useCallback(async () => {
-    const [fetchedUsers, fetchedProviders] = await Promise.all([fetchUsers(), fetchProviders()]);
+    const [fetchedUsers, fetchedProviders] = await Promise.all([
+      fetchUsers({ limit: 500, offset: 0 }),
+      fetchProviders(),
+    ]);
     setUsers(fetchedUsers);
     setProviders(fetchedProviders);
 
@@ -67,7 +70,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setSubscriptions([]);
       return;
     }
-    const creatorIds = await fetchSubscriptions(currentUserId);
+    const creatorIds = await fetchSubscriptions(currentUserId, { limit: 500, offset: 0 });
     setSubscriptions(creatorIds);
   }, [currentUserId]);
 
