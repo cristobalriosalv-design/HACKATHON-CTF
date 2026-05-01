@@ -11,6 +11,7 @@ from app.repositories.interfaces import UserRepositoryPort, VideoRepositoryPort
 
 class VideoService:
     UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB
+    ALLOWED_CATEGORIES = {"music", "gaming", "news"}
 
     def __init__(self, repo: VideoRepositoryPort, user_repo: UserRepositoryPort):
         self.repo = repo
@@ -29,11 +30,19 @@ class VideoService:
         self,
         title: str,
         description: str,
+        category: str | None,
         file: UploadFile,
         upload_dir: Path,
         thumbnail: UploadFile | None = None,
         uploader_id: int | None = None,
     ) -> Video:
+        normalized_category: str | None = None
+        if category and category.strip():
+            normalized_category = category.strip().lower()
+            if normalized_category not in self.ALLOWED_CATEGORIES:
+                allowed = ", ".join(sorted(self.ALLOWED_CATEGORIES))
+                raise HTTPException(status_code=400, detail=f"Invalid category. Allowed values: {allowed}")
+
         if uploader_id is not None and self.user_repo.get_by_id(uploader_id) is None:
             raise HTTPException(status_code=404, detail="Uploader not found")
 
@@ -52,6 +61,7 @@ class VideoService:
         return self.repo.create(
             title=title,
             description=description,
+            category=normalized_category,
             file_path=video_path,
             thumbnail_path=thumbnail_path,
             uploader_id=uploader_id,

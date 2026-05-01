@@ -20,6 +20,7 @@ class VideoRepositoryPort(Protocol):
         self,
         title: str,
         description: str,
+        category: str | None,
         file_path: str,
         thumbnail_path: str | None = None,
         uploader_id: int | None = None,

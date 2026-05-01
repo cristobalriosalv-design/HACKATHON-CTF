@@ -24,6 +24,7 @@ def to_video_response(video) -> VideoResponse:
         id=video.id,
         title=video.title,
         description=video.description,
+        category=video.category or None,
         created_at=video.created_at,
         views=video.views,
         stream_url=f"/videos/{video.id}/stream",

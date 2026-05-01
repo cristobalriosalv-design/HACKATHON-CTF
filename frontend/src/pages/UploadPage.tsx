@@ -106,6 +106,7 @@ export function UploadPage() {
   const { currentUser } = useUserContext();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<'' | 'music' | 'gaming' | 'news'>('');
   const [file, setFile] = useState<File | null>(null);
   const [thumbnailMode, setThumbnailMode] = useState<ThumbnailMode>('frame');
   const [generatedFrames, setGeneratedFrames] = useState<FrameOption[]>([]);
@@ -176,6 +177,9 @@ export function UploadPage() {
     const formData = new FormData();
     formData.append('title', title.trim());
     formData.append('description', description.trim());
+    if (category) {
+      formData.append('category', category);
+    }
     formData.append('file', file);
     if (currentUser) {
       formData.append('uploader_id', String(currentUser.id));
@@ -204,8 +208,8 @@ export function UploadPage() {
       setLoading(false);
       navigate(`/watch/${uploaded.id}`);
       void refreshVideos();
-    } catch {
-      setError('Upload failed. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
       setLoading(false);
     }
   };
@@ -239,6 +243,12 @@ export function UploadPage() {
             <h2>Details</h2>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" required />
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+            <select value={category} onChange={(e) => setCategory(e.target.value as '' | 'music' | 'gaming' | 'news')}>
+              <option value="">No category</option>
+              <option value="music">Music</option>
+              <option value="gaming">Gaming</option>
+              <option value="news">News</option>
+            </select>
           </section>
 
           <section className="upload-section">

@@ -30,6 +30,7 @@ def get_videos(
 def upload_video(
     title: str = Form(...),
     description: str = Form(""),
+    category: str | None = Form(None),
     file: UploadFile = File(...),
     thumbnail: UploadFile | None = File(None),
     uploader_id: int | None = Form(None),
@@ -38,6 +39,7 @@ def upload_video(
     video = video_service.upload_video(
         title=title,
         description=description,
+        category=category,
         file=file,
         upload_dir=UPLOAD_DIR,
         thumbnail=thumbnail,

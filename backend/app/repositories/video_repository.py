@@ -61,6 +61,7 @@ class VideoRepository:
         self,
         title: str,
         description: str,
+        category: str | None,
         file_path: str,
         thumbnail_path: str | None = None,
         uploader_id: int | None = None,
@@ -68,6 +69,7 @@ class VideoRepository:
         video = Video(
             title=title,
             description=description,
+            category=category or "",
             file_path=file_path,
             thumbnail_path=thumbnail_path,
             uploader_id=uploader_id,
