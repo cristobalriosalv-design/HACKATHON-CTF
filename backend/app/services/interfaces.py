@@ -18,6 +18,7 @@ class VideoServicePort(Protocol):
         self,
         title: str,
         description: str,
+        category: str | None,
         file: UploadFile,
         upload_dir: Path,
         thumbnail: UploadFile | None = None,

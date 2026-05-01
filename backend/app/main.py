@@ -23,6 +23,7 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
     ensure_video_thumbnail_column()
     ensure_video_uploader_column()
+    ensure_video_category_column()
 
 
 def ensure_video_thumbnail_column() -> None:
@@ -49,6 +50,19 @@ def ensure_video_uploader_column() -> None:
 
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE videos ADD COLUMN uploader_id INTEGER"))
+
+
+def ensure_video_category_column() -> None:
+    inspector = inspect(engine)
+    if "videos" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("videos")}
+    if "category" in columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE videos ADD COLUMN category VARCHAR(50) DEFAULT '' NOT NULL"))
 
 
 @app.get("/health")

@@ -15,6 +15,7 @@ export type Video = {
   id: number;
   title: string;
   description: string;
+  category: 'music' | 'gaming' | 'news' | null;
   created_at: string;
   views: number;
   stream_url: string;

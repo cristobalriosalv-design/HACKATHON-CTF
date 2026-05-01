@@ -41,8 +41,8 @@ export function UsersPage() {
       setProviderSubject('');
       setEmail('');
       setAvatar(null);
-    } catch {
-      setError('Could not create user. Check provider subject uniqueness and input values.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create user. Check provider subject uniqueness and input values.');
     } finally {
       setSaving(false);
     }

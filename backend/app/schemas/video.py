@@ -12,6 +12,7 @@ class VideoUploaderResponse(BaseModel):
 class VideoBase(BaseModel):
     title: str
     description: str
+    category: str | None
 
 
 class VideoResponse(VideoBase):
