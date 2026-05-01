@@ -1,4 +1,6 @@
 # EIATube Hackathon Starter
+# Cristobal Rios - Jeronimo Toro - Felipe Castrillon
+
 
 This repo is the code that is going to be given to the students as part of the hackathon challenge
 
