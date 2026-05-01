@@ -14,7 +14,7 @@ FROM oven/bun:1.2.2-alpine
 
 WORKDIR /app
 COPY package.json ./
-RUN bun install --production
+RUN bun install
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 5173
