@@ -1,6 +1,7 @@
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.core.database import commit_with_retry
 from app.models.comment import Comment
 
 
@@ -8,17 +9,19 @@ class CommentRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_video_id(self, video_id: int) -> list[Comment]:
+    def get_by_video_id(self, video_id: int, limit: int, offset: int) -> list[Comment]:
         return (
             self.db.query(Comment)
             .filter(Comment.video_id == video_id)
             .order_by(desc(Comment.created_at))
+            .offset(offset)
+            .limit(limit)
             .all()
         )
 
     def create(self, video_id: int, author: str, content: str) -> Comment:
         comment = Comment(video_id=video_id, author=author, content=content)
         self.db.add(comment)
-        self.db.commit()
+        commit_with_retry(self.db)
         self.db.refresh(comment)
         return comment

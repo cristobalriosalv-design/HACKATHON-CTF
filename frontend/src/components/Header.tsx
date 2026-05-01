@@ -19,7 +19,7 @@ export function Header() {
           <span className="brand-badge">
             <span className="brand-play" />
           </span>
-          <span className="brand-text">YouTube</span>
+          <span className="brand-text">EIATube</span>
         </Link>
       </div>
 
@@ -78,7 +78,7 @@ export function Header() {
         {avatarSrc ? (
           <img className="avatar avatar-image" src={avatarSrc} alt={`${currentUser?.display_name ?? 'Current user'} avatar`} />
         ) : (
-          <div className="avatar">{currentUser?.display_name.slice(0, 2).toUpperCase() ?? 'YC'}</div>
+          <div className="avatar">{currentUser?.display_name.slice(0, 2).toUpperCase() ?? 'EI'}</div>
         )}
       </div>
     </header>

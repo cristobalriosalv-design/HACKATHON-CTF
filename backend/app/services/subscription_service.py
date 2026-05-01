@@ -39,13 +39,13 @@ class SubscriptionService:
 
         self.subscription_repo.delete(existing)
 
-    def list_subscription_creator_ids(self, follower_id: int) -> list[int]:
+    def list_subscription_creator_ids(self, follower_id: int, limit: int, offset: int) -> list[int]:
         self._ensure_user_exists(follower_id)
-        return self.subscription_repo.list_creator_ids(follower_id=follower_id)
+        return self.subscription_repo.list_creator_ids(follower_id=follower_id, limit=limit, offset=offset)
 
-    def get_subscription_feed(self, follower_id: int) -> list[Video]:
-        creator_ids = self.list_subscription_creator_ids(follower_id=follower_id)
-        return self.video_repo.get_by_uploader_ids(creator_ids)
+    def get_subscription_feed(self, follower_id: int, limit: int, offset: int) -> list[Video]:
+        creator_ids = self.list_subscription_creator_ids(follower_id=follower_id, limit=limit, offset=0)
+        return self.video_repo.get_by_uploader_ids(creator_ids, limit=limit, offset=offset)
 
     def is_subscribed(self, follower_id: int, creator_id: int) -> bool:
         if follower_id == creator_id:

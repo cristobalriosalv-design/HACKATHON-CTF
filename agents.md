@@ -1,5 +1,5 @@
 # Explanation of the project
-This project is a YouTube clone that will be used as a challenge in a hackathon.
+This project is an EIATube clone that will be used as a challenge in a hackathon.
 The participants in the hackathon will have to take the project and make it be able to sustain thousands of users concurrently in a stress test.
 
 This challenge has the following dimensions:

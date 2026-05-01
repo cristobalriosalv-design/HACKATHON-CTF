@@ -505,7 +505,7 @@ wheels = [
 ]
 
 [[package]]
-name = "youtube-clone-backend"
+name = "eiatube-backend"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

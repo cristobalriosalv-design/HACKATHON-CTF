@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from pathlib import Path
 
@@ -9,12 +10,14 @@ from app.repositories.interfaces import UserRepositoryPort, VideoRepositoryPort
 
 
 class VideoService:
+    UPLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB
+
     def __init__(self, repo: VideoRepositoryPort, user_repo: UserRepositoryPort):
         self.repo = repo
         self.user_repo = user_repo
 
-    def list_videos(self) -> list[Video]:
-        return self.repo.get_all()
+    def list_videos(self, limit: int, offset: int) -> list[Video]:
+        return self.repo.get_all(limit=limit, offset=offset)
 
     def get_video(self, video_id: int) -> Video:
         video = self.repo.get_by_id(video_id)
@@ -56,19 +59,13 @@ class VideoService:
 
     def get_recommended(self, video_id: int, limit: int = 8) -> list[Video]:
         current = self.get_video(video_id)
-        all_videos = self.repo.get_all()
-
-        current_terms = set(current.title.lower().split())
-
-        def score(video: Video) -> tuple[int, int]:
-            if video.id == current.id:
-                return (-1, -1)
-            terms = set(video.title.lower().split())
-            overlap = len(current_terms.intersection(terms))
-            return (overlap, video.views)
-
-        ranked = sorted(all_videos, key=score, reverse=True)
-        return [video for video in ranked if video.id != current.id][:limit]
+        # Keep recommendation query bounded and computed in SQL.
+        terms = self._extract_title_terms(current.title)
+        return self.repo.get_recommended_by_title_terms(
+            excluded_video_id=current.id,
+            terms=terms,
+            limit=limit,
+        )
 
     def increment_views(self, video_id: int) -> Video:
         video = self.get_video(video_id)
@@ -108,6 +105,20 @@ class VideoService:
         destination = directory / filename
 
         with destination.open("wb") as buffer:
-            buffer.write(file.file.read())
+            while True:
+                chunk = file.file.read(self.UPLOAD_CHUNK_SIZE)
+                if not chunk:
+                    break
+                buffer.write(chunk)
 
         return str(destination)
+
+    def _extract_title_terms(self, title: str) -> list[str]:
+        terms: list[str] = []
+        for term in re.findall(r"\w+", title.lower()):
+            if len(term) < 3 or term in terms:
+                continue
+            terms.append(term)
+            if len(terms) >= 12:
+                break
+        return terms

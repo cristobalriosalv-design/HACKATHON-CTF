@@ -1,7 +1,7 @@
 [project]
-name = "youtube-clone-backend"
+name = "eiatube-backend"
 version = "0.1.0"
-description = "FastAPI backend for YouTube clone"
+description = "FastAPI backend for EIATube"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi==0.116.1",
