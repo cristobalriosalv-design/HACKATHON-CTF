@@ -1,4 +1,5 @@
 from fastapi import Depends
+from slowapi import Limiter
 from sqlalchemy.orm import Session
 
 from app.auth.providers import UserProviderRegistry, UserProviderRegistryPort
@@ -71,3 +72,8 @@ def get_subscription_service(
         subscription_repo=subscription_repo,
         video_repo=video_repo,
     )
+
+
+def get_limiter() -> Limiter:
+    from app.main import app
+    return app.state.limiter

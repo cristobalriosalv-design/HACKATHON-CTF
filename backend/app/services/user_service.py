@@ -6,6 +6,7 @@ from fastapi import HTTPException, UploadFile
 
 from app.auth.providers import ProviderUserCreateInput, UserProviderRegistryPort
 from app.core.cache import cache_manager
+from app.core.uploads import validate_avatar_size
 from app.models.user import User
 from app.repositories.interfaces import UserRepositoryPort
 
@@ -106,6 +107,10 @@ class UserService:
             return None
         if avatar.content_type and not avatar.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Avatar must be an image")
+
+        # Validate avatar size before processing
+        import asyncio
+        asyncio.run(validate_avatar_size(avatar))
 
         avatar_dir = upload_dir / "avatars"
         avatar_dir.mkdir(parents=True, exist_ok=True)

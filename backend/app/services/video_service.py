@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import HTTPException, UploadFile
 
 from app.core.cache import cache_manager
+from app.core.uploads import validate_video_size, validate_thumbnail_size
 from app.models.video import Video
 from app.repositories.interfaces import UserRepositoryPort, VideoRepositoryPort
 
@@ -72,6 +73,10 @@ class VideoService:
         if uploader_id is not None and self.user_repo.get_by_id(uploader_id) is None:
             raise HTTPException(status_code=404, detail="Uploader not found")
 
+        # Validate video file size before processing
+        import asyncio
+        asyncio.run(validate_video_size(file))
+
         upload_dir.mkdir(parents=True, exist_ok=True)
 
         video_path = self._save_upload_file(file=file, directory=upload_dir, default_name="video.mp4")
@@ -80,6 +85,8 @@ class VideoService:
         if thumbnail:
             if thumbnail.content_type and not thumbnail.content_type.startswith("image/"):
                 raise HTTPException(status_code=400, detail="Thumbnail must be an image")
+            # Validate thumbnail size before processing
+            asyncio.run(validate_thumbnail_size(thumbnail))
             thumbnail_dir = upload_dir / "thumbnails"
             thumbnail_dir.mkdir(parents=True, exist_ok=True)
             thumbnail_path = self._save_upload_file(file=thumbnail, directory=thumbnail_dir, default_name="thumb.jpg")
@@ -130,6 +137,42 @@ class VideoService:
         cache_manager.delete(f"video:recommended:{video_id}")
         
         return updated_video
+
+
+    def get_videos_by_ids(self, video_ids: list[int]) -> list[Video]:
+        """Get multiple videos by IDs in a single query (prevents N+1 queries)."""
+        if not video_ids:
+            return []
+        
+        cache_key = f"videos:batch:{','.join(map(str, sorted(video_ids)))}"
+        
+        # Check cache first
+        cached_videos = cache_manager.get(cache_key)
+        if cached_videos is not None:
+            return cached_videos
+        
+        # Query DB if not cached
+        videos = self.repo.get_by_ids(video_ids)
+        
+        # Cache result for 10 minutes
+        cache_manager.set(cache_key, videos, ttl=600)
+        
+        return videos
+
+    def increment_views_batch(self, video_ids: list[int], increment: int = 1) -> list[Video]:
+        """Atomically increment views for multiple videos in a single operation."""
+        if not video_ids:
+            return []
+        
+        # Atomic database update
+        videos = self.repo.increment_views_batch(video_ids, increment)
+        
+        # Invalidate caches for all affected videos
+        for video_id in video_ids:
+            cache_manager.delete(f"video:{video_id}")
+            cache_manager.delete(f"video:recommended:{video_id}")
+        
+        return videos
 
     def delete_video(self, video_id: int, requester_user_id: int) -> None:
         if self.user_repo.get_by_id(requester_user_id) is None:
