@@ -1,4 +1,18 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: eiatube_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - eiatube_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -8,8 +22,11 @@ services:
       - "8000:8000"
     environment:
       - MEDIA_BASE_URL=
+      - REDIS_URL=redis://redis:6379
     volumes:
       - eiatube_uploads:/app/uploads
+    depends_on:
+      - redis
 
   frontend:
     build:
@@ -23,3 +40,4 @@ services:
 
 volumes:
   eiatube_uploads:
+  eiatube_redis:
