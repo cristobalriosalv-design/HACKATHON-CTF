@@ -1,4 +1,4 @@
-from sqlalchemy import case, desc, func
+from sqlalchemy import case, desc, func, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import commit_with_retry
@@ -9,30 +9,36 @@ class VideoRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self, limit: int, offset: int) -> list[Video]:
+    def get_all(self, limit: int, offset: int, include_uploader: bool = False) -> list[Video]:
+        query = self.db.query(Video)
+        if include_uploader:
+            query = query.options(selectinload(Video.uploader))
         return (
-            self.db.query(Video)
-            .options(selectinload(Video.uploader))
+            query
             .order_by(desc(Video.created_at))
             .offset(offset)
             .limit(limit)
             .all()
         )
 
-    def get_by_id(self, video_id: int) -> Video | None:
+    def get_by_id(self, video_id: int, include_uploader: bool = False) -> Video | None:
+        query = self.db.query(Video)
+        if include_uploader:
+            query = query.options(selectinload(Video.uploader))
         return (
-            self.db.query(Video)
-            .options(selectinload(Video.uploader))
+            query
             .filter(Video.id == video_id)
             .first()
         )
 
-    def get_by_uploader_ids(self, uploader_ids: list[int], limit: int, offset: int) -> list[Video]:
+    def get_by_uploader_ids(self, uploader_ids: list[int], limit: int, offset: int, include_uploader: bool = False) -> list[Video]:
         if not uploader_ids:
             return []
+        query = self.db.query(Video)
+        if include_uploader:
+            query = query.options(selectinload(Video.uploader))
         return (
-            self.db.query(Video)
-            .options(selectinload(Video.uploader))
+            query
             .filter(Video.uploader_id.in_(uploader_ids))
             .order_by(desc(Video.created_at))
             .offset(offset)
@@ -40,8 +46,10 @@ class VideoRepository:
             .all()
         )
 
-    def get_recommended_by_title_terms(self, excluded_video_id: int, terms: list[str], limit: int) -> list[Video]:
-        query = self.db.query(Video).options(selectinload(Video.uploader)).filter(Video.id != excluded_video_id)
+    def get_recommended_by_title_terms(self, excluded_video_id: int, terms: list[str], limit: int, include_uploader: bool = False) -> list[Video]:
+        query = self.db.query(Video).filter(Video.id != excluded_video_id)
+        if include_uploader:
+            query = query.options(selectinload(Video.uploader))
 
         if terms:
             overlap_score = sum(
@@ -80,7 +88,9 @@ class VideoRepository:
         return video
 
     def increment_views(self, video: Video) -> Video:
-        video.views += 1
+        self.db.execute(
+            update(Video).where(Video.id == video.id).values(views=Video.views + 1)
+        )
         commit_with_retry(self.db)
         self.db.refresh(video)
         return video

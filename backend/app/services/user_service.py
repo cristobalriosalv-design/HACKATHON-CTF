@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import HTTPException, UploadFile
 
 from app.auth.providers import ProviderUserCreateInput, UserProviderRegistryPort
+from app.core.cache import cache_manager
 from app.models.user import User
 from app.repositories.interfaces import UserRepositoryPort
 
@@ -17,12 +18,37 @@ class UserService:
         self.provider_registry = provider_registry
 
     def list_users(self, limit: int, offset: int) -> list[User]:
-        return self.repo.list_users(limit=limit, offset=offset)
+        cache_key = f"users:list:{limit}:{offset}"
+        
+        # Try to get from cache
+        cached_users = cache_manager.get(cache_key)
+        if cached_users is not None:
+            return cached_users
+        
+        # Fetch from database if not in cache
+        users = self.repo.list_users(limit=limit, offset=offset)
+        
+        # Cache the result for 5 minutes
+        cache_manager.set(cache_key, users, ttl=300)
+        
+        return users
 
     def get_user(self, user_id: int) -> User:
+        cache_key = f"user:{user_id}"
+        
+        # Try to get from cache
+        cached_user = cache_manager.get(cache_key)
+        if cached_user is not None:
+            return cached_user
+        
+        # Fetch from database if not in cache
         user = self.repo.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+        
+        # Cache the result for 15 minutes
+        cache_manager.set(cache_key, user, ttl=900)
+        
         return user
 
     def create_user(
@@ -61,6 +87,10 @@ class UserService:
         )
         self.repo.commit()
         self.repo.refresh_user(user)
+        
+        # Invalidate users list cache since a new user was created
+        cache_manager.clear_pattern("users:list:*")
+        
         return user
 
     def ensure_avatar_file_exists(self, user: User) -> str:

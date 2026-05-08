@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
 
+from app.core.cache import cache_manager
 from app.models.video import Video
 from app.repositories.interfaces import UserRepositoryPort, VideoRepositoryPort
 
@@ -18,12 +19,37 @@ class VideoService:
         self.user_repo = user_repo
 
     def list_videos(self, limit: int, offset: int) -> list[Video]:
-        return self.repo.get_all(limit=limit, offset=offset)
+        cache_key = f"videos:list:{limit}:{offset}"
+        
+        # Check cache first
+        cached_videos = cache_manager.get(cache_key)
+        if cached_videos is not None:
+            return cached_videos
+        
+        # Query DB if not cached
+        videos = self.repo.get_all(limit=limit, offset=offset)
+        
+        # Cache result for 5 minutes
+        cache_manager.set(cache_key, videos, ttl=300)
+        
+        return videos
 
     def get_video(self, video_id: int) -> Video:
+        cache_key = f"video:{video_id}"
+        
+        # Check cache first
+        cached_video = cache_manager.get(cache_key)
+        if cached_video is not None:
+            return cached_video
+        
+        # Query DB if not cached
         video = self.repo.get_by_id(video_id)
         if not video:
             raise HTTPException(status_code=404, detail="Video not found")
+        
+        # Cache result for 10 minutes
+        cache_manager.set(cache_key, video, ttl=600)
+        
         return video
 
     def upload_video(
@@ -58,7 +84,7 @@ class VideoService:
             thumbnail_dir.mkdir(parents=True, exist_ok=True)
             thumbnail_path = self._save_upload_file(file=thumbnail, directory=thumbnail_dir, default_name="thumb.jpg")
 
-        return self.repo.create(
+        video = self.repo.create(
             title=title,
             description=description,
             category=normalized_category,
@@ -66,20 +92,44 @@ class VideoService:
             thumbnail_path=thumbnail_path,
             uploader_id=uploader_id,
         )
+        
+        # Invalidate list caches when new video is uploaded
+        cache_manager.clear_pattern("videos:list:*")
+        
+        return video
 
     def get_recommended(self, video_id: int, limit: int = 8) -> list[Video]:
+        cache_key = f"video:recommended:{video_id}"
+        
+        # Check cache first
+        cached_recommendations = cache_manager.get(cache_key)
+        if cached_recommendations is not None:
+            return cached_recommendations
+        
+        # Query DB if not cached
         current = self.get_video(video_id)
-        # Keep recommendation query bounded and computed in SQL.
         terms = self._extract_title_terms(current.title)
-        return self.repo.get_recommended_by_title_terms(
+        recommendations = self.repo.get_recommended_by_title_terms(
             excluded_video_id=current.id,
             terms=terms,
             limit=limit,
         )
+        
+        # Cache result for 30 minutes (recommendations change less frequently)
+        cache_manager.set(cache_key, recommendations, ttl=1800)
+        
+        return recommendations
 
     def increment_views(self, video_id: int) -> Video:
         video = self.get_video(video_id)
-        return self.repo.increment_views(video)
+        updated_video = self.repo.increment_views(video)
+        
+        # Invalidate video cache since views changed
+        cache_manager.delete(f"video:{video_id}")
+        # Invalidate recommendations cache since view counts may affect sorting
+        cache_manager.delete(f"video:recommended:{video_id}")
+        
+        return updated_video
 
     def delete_video(self, video_id: int, requester_user_id: int) -> None:
         if self.user_repo.get_by_id(requester_user_id) is None:
@@ -94,6 +144,11 @@ class VideoService:
             file_paths.append(video.thumbnail_path)
 
         self.repo.delete(video)
+        
+        # Invalidate all related caches when video is deleted
+        cache_manager.delete(f"video:{video_id}")
+        cache_manager.delete(f"video:recommended:{video_id}")
+        cache_manager.clear_pattern("videos:list:*")
 
         for file_path in file_paths:
             if os.path.exists(file_path):
