@@ -10,8 +10,10 @@ from app.dependencies import get_comment_service, get_video_service
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.video import VideoResponse
 from app.services.interfaces import CommentServicePort, VideoServicePort
+from app.main import app
 
 router = APIRouter(prefix="/videos", tags=["videos"])
+limiter = app.state.limiter
 
 UPLOAD_DIR = Path("uploads")
 
@@ -27,6 +29,7 @@ def get_videos(
 
 
 @router.post("/upload", response_model=VideoResponse)
+@limiter.limit("5/minute")
 def upload_video(
     title: str = Form(...),
     description: str = Form(""),
@@ -55,12 +58,14 @@ def get_video(video_id: int, video_service: VideoServicePort = Depends(get_video
 
 
 @router.post("/{video_id}/views", response_model=VideoResponse)
+@limiter.limit("30/minute")
 def increment_video_views(video_id: int, video_service: VideoServicePort = Depends(get_video_service)):
     video = video_service.increment_views(video_id)
     return to_video_response(video)
 
 
 @router.delete("/{video_id}")
+@limiter.limit("10/minute")
 def delete_video(
     video_id: int,
     requester_user_id: int = Query(...),
@@ -102,6 +107,7 @@ def get_comments(
 
 
 @router.post("/{video_id}/comments", response_model=CommentResponse)
+@limiter.limit("20/minute")
 def post_comment(
     video_id: int,
     payload: CommentCreate,

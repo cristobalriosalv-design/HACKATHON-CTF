@@ -31,6 +31,20 @@ class VideoRepository:
             .first()
         )
 
+    def get_by_ids(self, video_ids: list[int], include_uploader: bool = False) -> list[Video]:
+        """Get multiple videos by IDs in a single query (prevents N+1)."""
+        if not video_ids:
+            return []
+        query = self.db.query(Video)
+        if include_uploader:
+            query = query.options(selectinload(Video.uploader))
+        return (
+            query
+            .filter(Video.id.in_(video_ids))
+            .order_by(desc(Video.created_at))
+            .all()
+        )
+
     def get_by_uploader_ids(self, uploader_ids: list[int], limit: int, offset: int, include_uploader: bool = False) -> list[Video]:
         if not uploader_ids:
             return []
@@ -94,6 +108,22 @@ class VideoRepository:
         commit_with_retry(self.db)
         self.db.refresh(video)
         return video
+
+    def increment_views_batch(self, video_ids: list[int], increment: int = 1) -> list[Video]:
+        """Atomically increment views for multiple videos in a single query."""
+        if not video_ids:
+            return []
+        
+        # Atomic update in DB
+        self.db.execute(
+            update(Video)
+            .where(Video.id.in_(video_ids))
+            .values(views=Video.views + increment)
+        )
+        commit_with_retry(self.db)
+        
+        # Fetch and return updated videos
+        return self.get_by_ids(video_ids)
 
     def delete(self, video: Video) -> None:
         self.db.delete(video)

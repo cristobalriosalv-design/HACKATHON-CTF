@@ -11,8 +11,10 @@ from app.schemas.subscription import SubscriptionListResponse, SubscriptionRespo
 from app.schemas.user import ProviderListResponse, UserResponse
 from app.schemas.video import VideoResponse
 from app.services.interfaces import SubscriptionServicePort, UserServicePort
+from app.main import app
 
 router = APIRouter(prefix="/users", tags=["users"])
+limiter = app.state.limiter
 
 UPLOAD_DIR = Path("uploads")
 
@@ -28,6 +30,7 @@ def list_users(
 
 
 @router.post("", response_model=UserResponse)
+@limiter.limit("10/minute")
 def create_user(
     provider: str = Form("local"),
     display_name: str = Form(...),
@@ -65,6 +68,7 @@ def stream_avatar(user_id: int, user_service: UserServicePort = Depends(get_user
 
 
 @router.post("/{user_id}/subscriptions/{creator_id}", response_model=SubscriptionResponse)
+@limiter.limit("30/minute")
 def subscribe(
     user_id: int,
     creator_id: int,
@@ -74,6 +78,7 @@ def subscribe(
 
 
 @router.delete("/{user_id}/subscriptions/{creator_id}")
+@limiter.limit("30/minute")
 def unsubscribe(
     user_id: int,
     creator_id: int,

@@ -6,6 +6,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+from app.api.routes.batch import router as batch_router
 from app.api.routes.users import router as users_router
 from app.api.routes.videos import router as videos_router
 from app.core.database import Base, engine, create_indices
@@ -99,3 +100,4 @@ def health_check():
 
 app.include_router(videos_router)
 app.include_router(users_router)
+app.include_router(batch_router)
