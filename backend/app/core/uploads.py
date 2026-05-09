@@ -10,9 +10,10 @@ MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 2 MB
 
 async def get_file_size(file: UploadFile) -> int:
     """Get file size by seeking to end."""
-    await file.seek(0, 2)  # Seek to end
-    size = await file.tell()
-    await file.seek(0)  # Reset to beginning
+    # Seek to end of file using the underlying file object
+    file.file.seek(0, 2)  # Seek to end (whence=2)
+    size = file.file.tell()  # Get current position (which is the file size)
+    file.file.seek(0)  # Reset to beginning
     return size
 
 

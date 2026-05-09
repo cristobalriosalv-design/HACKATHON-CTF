@@ -1,20 +1,19 @@
 import mimetypes
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
 
 from app.api.response_mappers import to_user_response, to_video_response
 from app.core.media import build_media_url_for_file
+from app.core.limiter import limiter
 from app.dependencies import get_subscription_service, get_user_service
 from app.schemas.subscription import SubscriptionListResponse, SubscriptionResponse
 from app.schemas.user import ProviderListResponse, UserResponse
 from app.schemas.video import VideoResponse
 from app.services.interfaces import SubscriptionServicePort, UserServicePort
-from app.main import app
 
 router = APIRouter(prefix="/users", tags=["users"])
-limiter = app.state.limiter
 
 UPLOAD_DIR = Path("uploads")
 
@@ -29,9 +28,10 @@ def list_users(
     return [to_user_response(user) for user in users]
 
 
-@router.post("", response_model=UserResponse)
 @limiter.limit("10/minute")
+@router.post("", response_model=UserResponse)
 def create_user(
+    request: Request,
     provider: str = Form("local"),
     display_name: str = Form(...),
     provider_subject: str = Form(""),
@@ -67,9 +67,10 @@ def stream_avatar(user_id: int, user_service: UserServicePort = Depends(get_user
     return FileResponse(file_path, media_type=media_type, filename=Path(file_path).name)
 
 
-@router.post("/{user_id}/subscriptions/{creator_id}", response_model=SubscriptionResponse)
 @limiter.limit("30/minute")
+@router.post("/{user_id}/subscriptions/{creator_id}", response_model=SubscriptionResponse)
 def subscribe(
+    request: Request,
     user_id: int,
     creator_id: int,
     subscription_service: SubscriptionServicePort = Depends(get_subscription_service),
@@ -77,9 +78,10 @@ def subscribe(
     return subscription_service.subscribe(follower_id=user_id, creator_id=creator_id)
 
 
-@router.delete("/{user_id}/subscriptions/{creator_id}")
 @limiter.limit("30/minute")
+@router.delete("/{user_id}/subscriptions/{creator_id}")
 def unsubscribe(
+    request: Request,
     user_id: int,
     creator_id: int,
     subscription_service: SubscriptionServicePort = Depends(get_subscription_service),

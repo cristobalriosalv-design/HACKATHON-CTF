@@ -2,20 +2,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import inspect, text
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api.routes.batch import router as batch_router
 from app.api.routes.users import router as users_router
 from app.api.routes.videos import router as videos_router
 from app.core.database import Base, engine, create_indices
+from app.core.limiter import limiter
 from app.models import Comment, Subscription, User, UserIdentity, Video
 
 app = FastAPI(title="EIATube API")
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Set the limiter on app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

@@ -1,17 +1,16 @@
 """Batch operation endpoints for efficient bulk operations."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.api.response_mappers import to_comment_response, to_video_response
+from app.core.limiter import limiter
 from app.dependencies import get_comment_service, get_video_service
-from app.main import app
 from app.schemas.comment import CommentResponse
 from app.schemas.video import VideoResponse
 from app.services.interfaces import CommentServicePort, VideoServicePort
 
 router = APIRouter(prefix="/batch", tags=["batch"])
-limiter = app.state.limiter
 
 
 class VideoIdsBatch(BaseModel):
@@ -48,9 +47,10 @@ def get_videos_batch(
     return [to_video_response(v) for v in videos]
 
 
-@router.post("/videos/increment-views", response_model=list[VideoResponse])
 @limiter.limit("5/minute")
+@router.post("/videos/increment-views", response_model=list[VideoResponse])
 def increment_views_batch(
+    request: Request,
     batch: VideoIdIncrementBatch,
     video_service: VideoServicePort = Depends(get_video_service),
 ):

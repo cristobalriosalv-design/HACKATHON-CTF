@@ -1,19 +1,18 @@
 from pathlib import Path
 import mimetypes
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
 
 from app.api.response_mappers import to_video_response
+from app.core.limiter import limiter
 from app.core.media import build_media_url_for_file
 from app.dependencies import get_comment_service, get_video_service
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.video import VideoResponse
 from app.services.interfaces import CommentServicePort, VideoServicePort
-from app.main import app
 
 router = APIRouter(prefix="/videos", tags=["videos"])
-limiter = app.state.limiter
 
 UPLOAD_DIR = Path("uploads")
 
@@ -28,9 +27,10 @@ def get_videos(
     return [to_video_response(video) for video in videos]
 
 
-@router.post("/upload", response_model=VideoResponse)
 @limiter.limit("5/minute")
+@router.post("/upload", response_model=VideoResponse)
 def upload_video(
+    request: Request,
     title: str = Form(...),
     description: str = Form(""),
     category: str | None = Form(None),
@@ -57,16 +57,21 @@ def get_video(video_id: int, video_service: VideoServicePort = Depends(get_video
     return to_video_response(video)
 
 
-@router.post("/{video_id}/views", response_model=VideoResponse)
 @limiter.limit("30/minute")
-def increment_video_views(video_id: int, video_service: VideoServicePort = Depends(get_video_service)):
+@router.post("/{video_id}/views", response_model=VideoResponse)
+def increment_video_views(
+    request: Request,
+    video_id: int,
+    video_service: VideoServicePort = Depends(get_video_service),
+):
     video = video_service.increment_views(video_id)
     return to_video_response(video)
 
 
-@router.delete("/{video_id}")
 @limiter.limit("10/minute")
+@router.delete("/{video_id}")
 def delete_video(
+    request: Request,
     video_id: int,
     requester_user_id: int = Query(...),
     video_service: VideoServicePort = Depends(get_video_service),
@@ -106,9 +111,10 @@ def get_comments(
     return comment_service.list_comments(video_id=video_id, limit=limit, offset=offset)
 
 
-@router.post("/{video_id}/comments", response_model=CommentResponse)
 @limiter.limit("20/minute")
+@router.post("/{video_id}/comments", response_model=CommentResponse)
 def post_comment(
+    request: Request,
     video_id: int,
     payload: CommentCreate,
     comment_service: CommentServicePort = Depends(get_comment_service),
